@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace Week1.Rbac.Api.Migrations
 {
-    /// <inheritdoc />
     public partial class InitialRbac : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -134,7 +132,6 @@ namespace Week1.Rbac.Api.Migrations
                 unique: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

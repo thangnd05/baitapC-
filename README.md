@@ -37,7 +37,11 @@ Controller không còn tham chiếu `AppDbContext` — chỉ phụ thuộc `IUse
 |---|---|
 | .NET SDK | 10.0.x (`dotnet --version`) |
 | PostgreSQL | 14+ (bài này chạy trên 18), lắng nghe **`localhost:5932`** |
-| dotnet-ef | 10.0.10 (local tool trong `.config/dotnet-tools.json`) |
+| dotnet-ef | 10.0.11 (local tool trong `.config/dotnet-tools.json`) |
+
+> Manifest **không** đặt `"rollForward": false`. Bản pin cứng `10.0.10` kèm cờ đó
+> làm `dotnet ef` báo *"Run dotnet tool restore..."* dù restore đã thành công,
+> trên máy chỉ có runtime 10.0.11.
 
 ## 3. Cấu hình database bằng biến môi trường
 
@@ -96,7 +100,7 @@ psql -h localhost -p 5932 -U week1_app -d week1_rbac -c "select current_user, cu
 
 ```bash
 cd week1-rbac
-dotnet tool restore                       # cài dotnet-ef 10.0.10
+dotnet tool restore                       # cài dotnet-ef 10.0.11
 dotnet restore Week1.Rbac.Api/Week1.Rbac.Api.csproj
 
 cd Week1.Rbac.Api
@@ -107,8 +111,14 @@ dotnet run                                # http://localhost:5080
 ```
 
 Swagger UI: **http://localhost:5080/swagger** (mở `/` cũng tự chuyển sang `/swagger`).
-Swagger đọc cả XML comment của controller nên mỗi endpoint có mô tả tiếng Việt và
-danh sách mã HTTP khai báo qua `[ProducesResponseType]`.
+Mỗi endpoint khai báo sẵn danh sách mã HTTP qua `[ProducesResponseType]`, nên Swagger
+liệt kê đủ 200/201/204/400/404/409 mà không cần XML comment.
+
+Port `5080` do `Properties/launchSettings.json` cố định — không phải port ngẫu nhiên
+của template, nên link Swagger ở trên luôn đúng.
+
+Ngoài Swagger, `Week1.Rbac.Api.http` chứa sẵn toàn bộ chuỗi kiểm thử (kể cả các case
+lỗi 400/404/409) chạy được thẳng trong VS Code hoặc Visual Studio.
 
 ## 6. Mô hình dữ liệu
 
@@ -132,7 +142,7 @@ User **không** lưu chuỗi permission trực tiếp — quyền luôn đi qua 
 | Nhóm | Method + route | Kết quả |
 |---|---|---|
 | Users | `GET /api/users` · `GET /api/users/{id}` | Danh sách/chi tiết user kèm role |
-| Users | `POST /api/users` · `PUT /api/users/{id}` · `DELETE /api/users/{id}` | Tạo/sửa/xóa; không trả `PasswordHash` |
+| Users | `POST /api/users` · `PUT /api/users/{id}` · `DELETE /api/users/{id}` | Tạo/sửa (email, tên, trạng thái)/xóa; không trả `PasswordHash` |
 | Roles | `GET/POST /api/roles` · `GET/PUT/DELETE /api/roles/{id}` | CRUD role + đọc permissions |
 | Permissions | `GET/POST /api/permissions` · `GET/PUT/DELETE /api/permissions/{id}` | CRUD permission |
 | Role ↔ Permission | `PUT`/`DELETE` `/api/roles/{roleId}/permissions/{permissionId}` | Gán/gỡ permission khỏi role |
@@ -160,14 +170,28 @@ Mã HTTP: `200` đọc/sửa · `201` tạo · `204` gán/gỡ/xóa · `400` val
 { "name": "admin", "permissions": ["user.create", "user.read"] }
 ```
 
-## 9. Bảo mật password ở tuần 1
+## 9. Dữ liệu seed sẵn (bài mở rộng)
+
+Migration `SeedOrganizerRole` chèn sẵn 3 permission và 1 role, đã gán quan hệ:
+
+| Bản ghi | Giá trị |
+|---|---|
+| Permission | `event.create`, `event.update`, `event.delete` |
+| Role | `organizer` |
+| Quan hệ | `organizer` có đủ 3 permission `event.*` |
+
+Id được cố định trong `AppDbContext` (`a0000000-...` cho role, `e0000000-...-0001..0003`
+cho permission) để migration chạy lại nhiều lần vẫn cho cùng kết quả. Kiểm tra bằng
+`GET /api/roles` — `organizer` phải hiện đủ 3 permission ngay sau `database update`.
+
+## 10. Bảo mật password ở tuần 1
 
 * Password được hash bằng `PasswordHasher<User>` (PBKDF2, định dạng ASP.NET Identity v3)
   ngay trong `UserService.CreateAsync` — plain-text không rời khỏi tầng service.
 * Cột `users.password_hash` có dữ liệu trong database, nhưng **không có DTO nào chứa nó** —
   `UserResponse` cố ý không khai báo trường password, nên không thể lộ qua JSON.
 
-## 10. Lỗi thường gặp
+## 11. Lỗi thường gặp
 
 | Triệu chứng | Cách xử lý |
 |---|---|
@@ -176,11 +200,12 @@ Mã HTTP: `200` đọc/sửa · `201` tạo · `204` gán/gỡ/xóa · `400` val
 | `database does not exist` | Tạo lại `week1_rbac` với `OWNER week1_app` |
 | `Connection refused` port 5932 | Container chưa chạy: `docker start week1-postgres` |
 | `dotnet ef not found` | Đứng ở thư mục có `.config/` rồi `dotnet tool restore` |
+| `Run "dotnet tool restore"...` dù đã restore | Manifest pin sai version hoặc có `"rollForward": false` — xem mục 2 |
 | `relation ... does not exist` | Chưa chạy `dotnet ef database update` |
 | `409 Conflict` | Email/role name/permission code bị trùng |
 | `validation metadata ... will be ignored` | Record DTO đang dùng `[property: Required]` — phải bỏ tiền tố `property:` |
 
-## 11. Cấu trúc thư mục
+## 12. Cấu trúc thư mục
 
 ```
 week1-rbac/
@@ -202,7 +227,7 @@ week1-rbac/
     └── appsettings.Development.json
 ```
 
-## 12. Tuần 2
+## 13. Tuần 2
 
 Bổ sung đăng nhập, xác thực password hash, phát JWT và chuyển permission thành
 authorization policy. Database, service và CRUD của tuần 1 được giữ nguyên.

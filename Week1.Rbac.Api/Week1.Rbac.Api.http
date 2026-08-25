@@ -1,6 +1,103 @@
-@Week1.Rbac.Api_HostAddress = http://localhost:5197
+@host = http://localhost:5080
 
-GET {{Week1.Rbac.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### 1. Tao permission user.read
+# @name createUserRead
+POST {{host}}/api/permissions
+Content-Type: application/json
 
-###
+{
+  "code": "user.read",
+  "description": "Xem nguoi dung"
+}
+
+@userReadId = {{createUserRead.response.body.$.id}}
+
+### 2. Tao permission user.create
+# @name createUserCreate
+POST {{host}}/api/permissions
+Content-Type: application/json
+
+{
+  "code": "user.create",
+  "description": "Tao nguoi dung"
+}
+
+@userCreateId = {{createUserCreate.response.body.$.id}}
+
+### 3. Tao role admin
+# @name createAdminRole
+POST {{host}}/api/roles
+Content-Type: application/json
+
+{
+  "name": "admin",
+  "description": "Quan tri he thong"
+}
+
+@adminRoleId = {{createAdminRole.response.body.$.id}}
+
+### 4a. Gan user.read cho admin -> 204
+PUT {{host}}/api/roles/{{adminRoleId}}/permissions/{{userReadId}}
+
+### 4b. Gan user.create cho admin -> 204
+PUT {{host}}/api/roles/{{adminRoleId}}/permissions/{{userCreateId}}
+
+### 5. Tao user
+# @name createUser
+POST {{host}}/api/users
+Content-Type: application/json
+
+{
+  "email": "admin@example.edu.vn",
+  "displayName": "Campus Admin",
+  "password": "P@ssword123"
+}
+
+@userId = {{createUser.response.body.$.id}}
+
+### 6. Gan role admin cho user -> 204
+PUT {{host}}/api/users/{{userId}}/roles/{{adminRoleId}}
+
+### 7a. Doc lai user -> roles: ["admin"]
+GET {{host}}/api/users/{{userId}}
+
+### 7b. Doc lai role -> permissions: ["user.create", "user.read"]
+GET {{host}}/api/roles/{{adminRoleId}}
+
+### 7c. Hop quyen cua user
+GET {{host}}/api/users/{{userId}}/permissions
+
+### 8. Role organizer va permission event.* duoc seed san
+GET {{host}}/api/roles
+
+### Loi co chu dinh: 409 vi permission code trung
+POST {{host}}/api/permissions
+Content-Type: application/json
+
+{
+  "code": "user.read",
+  "description": "Trung code"
+}
+
+### Loi co chu dinh: 409 vi email trung
+PUT {{host}}/api/users/{{userId}}
+Content-Type: application/json
+
+{
+  "email": "admin@example.edu.vn",
+  "displayName": "Campus Admin",
+  "isActive": true
+}
+
+### Loi co chu dinh: 400 vi password duoi 8 ky tu
+POST {{host}}/api/users
+Content-Type: application/json
+
+{
+  "email": "short@example.edu.vn",
+  "displayName": "Short Password",
+  "password": "123"
+}
+
+### Loi co chu dinh: 404 vi id khong ton tai
+GET {{host}}/api/users/00000000-0000-0000-0000-000000000000

@@ -15,7 +15,6 @@ namespace Week1.Rbac.Api.Migrations
     [Migration("20260816150200_InitialRbac")]
     partial class InitialRbac
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

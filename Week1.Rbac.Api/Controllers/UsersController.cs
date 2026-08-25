@@ -38,7 +38,9 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<UserResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<UserResponse>> Update(Guid id, UpdateUserRequest request, CancellationToken ct)
     {
         var result = await users.UpdateAsync(id, request, ct);

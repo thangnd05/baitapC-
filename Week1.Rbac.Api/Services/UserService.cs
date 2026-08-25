@@ -74,6 +74,13 @@ public sealed class UserService(AppDbContext db) : IUserService
             return ServiceResult<UserResponse>.NotFound("User không tồn tại");
         }
 
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await db.Users.AnyAsync(x => x.Email == email && x.Id != id, ct))
+        {
+            return ServiceResult<UserResponse>.Conflict($"Email đã tồn tại: {email}");
+        }
+
+        user.Email = email;
         user.DisplayName = request.DisplayName.Trim();
         user.IsActive = request.IsActive;
         await db.SaveChangesAsync(ct);

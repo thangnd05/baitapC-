@@ -38,6 +38,7 @@ public sealed class PermissionsController(IPermissionService permissions) : ApiC
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<PermissionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<PermissionResponse>> Update(Guid id, UpdatePermissionRequest request, CancellationToken ct)

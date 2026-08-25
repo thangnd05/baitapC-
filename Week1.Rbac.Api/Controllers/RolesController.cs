@@ -38,6 +38,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<RoleResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RoleResponse>> Update(Guid id, UpdateRoleRequest request, CancellationToken ct)

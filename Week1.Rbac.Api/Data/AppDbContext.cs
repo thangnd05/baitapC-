@@ -11,6 +11,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
 
+    private static readonly DateTimeOffset SeedTimestamp =
+        new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private static readonly Guid OrganizerRoleId =
+        Guid.Parse("a0000000-0000-0000-0000-000000000001");
+
+    private static readonly Guid EventCreateId =
+        Guid.Parse("e0000000-0000-0000-0000-000000000001");
+
+    private static readonly Guid EventUpdateId =
+        Guid.Parse("e0000000-0000-0000-0000-000000000002");
+
+    private static readonly Guid EventDeleteId =
+        Guid.Parse("e0000000-0000-0000-0000-000000000003");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<User>(entity =>
@@ -35,6 +50,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(256);
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.HasIndex(x => x.Name).IsUnique().HasDatabaseName("ix_roles_name");
+
+            entity.HasData(new Role
+            {
+                Id = OrganizerRoleId,
+                Name = "organizer",
+                Description = "Quản lý sự kiện",
+                CreatedAt = SeedTimestamp
+            });
         });
 
         modelBuilder.Entity<Permission>(entity =>
@@ -46,6 +69,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             entity.Property(x => x.Description).HasColumnName("description").HasMaxLength(256);
             entity.Property(x => x.CreatedAt).HasColumnName("created_at");
             entity.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ix_permissions_code");
+
+            entity.HasData(
+                new Permission
+                {
+                    Id = EventCreateId,
+                    Code = "event.create",
+                    Description = "Tạo sự kiện",
+                    CreatedAt = SeedTimestamp
+                },
+                new Permission
+                {
+                    Id = EventUpdateId,
+                    Code = "event.update",
+                    Description = "Sửa sự kiện",
+                    CreatedAt = SeedTimestamp
+                },
+                new Permission
+                {
+                    Id = EventDeleteId,
+                    Code = "event.delete",
+                    Description = "Xóa sự kiện",
+                    CreatedAt = SeedTimestamp
+                });
         });
 
         modelBuilder.Entity<UserRole>(entity =>
@@ -72,6 +118,26 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Permission).WithMany(x => x.RolePermissions)
                 .HasForeignKey(x => x.PermissionId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasData(
+                new RolePermission
+                {
+                    RoleId = OrganizerRoleId,
+                    PermissionId = EventCreateId,
+                    AssignedAt = SeedTimestamp
+                },
+                new RolePermission
+                {
+                    RoleId = OrganizerRoleId,
+                    PermissionId = EventUpdateId,
+                    AssignedAt = SeedTimestamp
+                },
+                new RolePermission
+                {
+                    RoleId = OrganizerRoleId,
+                    PermissionId = EventDeleteId,
+                    AssignedAt = SeedTimestamp
+                });
         });
     }
 }
