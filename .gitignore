@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+*.user
+
+# Secret: chỉ commit .env.example
+.env
+.env.local
+appsettings.*.local.json
