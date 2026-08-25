@@ -1,0 +1,129 @@
+@host = http://localhost:5081
+
+### 1. Tao programme SE -> 201
+# @name createProgramme
+POST {{host}}/api/programmes
+Content-Type: application/json
+
+{
+  "programmeCode": "SE",
+  "programmeName": "Ky thuat phan mem",
+  "degreeLevel": "BACHELOR",
+  "durationYears": 4
+}
+
+@programmeId = {{createProgramme.response.body.$.programmeId}}
+
+### 2. Tao course DB101 -> 201
+# @name createCourse
+POST {{host}}/api/courses
+Content-Type: application/json
+
+{
+  "courseCode": "DB101",
+  "courseName": "Co so du lieu",
+  "credits": 3,
+  "isActive": true
+}
+
+@courseId = {{createCourse.response.body.$.courseId}}
+
+### 3. Tao student SV001 -> 201
+# @name createStudent
+POST {{host}}/api/students
+Content-Type: application/json
+
+{
+  "programmeId": {{programmeId}},
+  "studentCode": "SV001",
+  "fullName": "Nguyen An",
+  "email": "an@example.edu",
+  "dateOfBirth": "2005-02-14",
+  "yearOfEntry": 2023,
+  "status": "ACTIVE"
+}
+
+@studentId = {{createStudent.response.body.$.studentId}}
+
+### 4. Doc danh sach student -> 200
+GET {{host}}/api/students
+
+### 5. Doc programme -> studentCount = 1
+GET {{host}}/api/programmes/{{programmeId}}
+
+### 6. Doc student cua programme -> 200
+GET {{host}}/api/programmes/{{programmeId}}/students
+
+### 7. Sua email va status cua student -> 200
+PUT {{host}}/api/students/{{studentId}}
+Content-Type: application/json
+
+{
+  "programmeId": {{programmeId}},
+  "studentCode": "SV001",
+  "fullName": "Nguyen An",
+  "email": "nguyen.an@example.edu",
+  "dateOfBirth": "2005-02-14",
+  "yearOfEntry": 2023,
+  "status": "SUSPENDED"
+}
+
+### 8. Xoa programme khi con student -> 409
+DELETE {{host}}/api/programmes/{{programmeId}}
+
+### 9. Trung programme code -> 409
+POST {{host}}/api/programmes
+Content-Type: application/json
+
+{
+  "programmeCode": "SE",
+  "programmeName": "Trung code",
+  "degreeLevel": "BACHELOR",
+  "durationYears": 4
+}
+
+### 10. durationYears ngoai khoang 1..8 -> 400
+POST {{host}}/api/programmes
+Content-Type: application/json
+
+{
+  "programmeCode": "IT",
+  "programmeName": "Cong nghe thong tin",
+  "degreeLevel": "BACHELOR",
+  "durationYears": 0
+}
+
+### 11. Student tro toi programme khong ton tai -> 404
+POST {{host}}/api/students
+Content-Type: application/json
+
+{
+  "programmeId": 999999,
+  "studentCode": "SV999",
+  "fullName": "Khong ton tai",
+  "email": "x@example.edu",
+  "yearOfEntry": 2023,
+  "status": "ACTIVE"
+}
+
+### 12. Status ngoai ACTIVE/SUSPENDED/GRADUATED -> 400
+POST {{host}}/api/students
+Content-Type: application/json
+
+{
+  "programmeId": {{programmeId}},
+  "studentCode": "SV002",
+  "fullName": "Sai status",
+  "email": "y@example.edu",
+  "yearOfEntry": 2023,
+  "status": "DROPPED"
+}
+
+### 13a. Don dep: xoa student truoc -> 204
+DELETE {{host}}/api/students/{{studentId}}
+
+### 13b. Don dep: xoa programme -> 204
+DELETE {{host}}/api/programmes/{{programmeId}}
+
+### 13c. Don dep: xoa course -> 204
+DELETE {{host}}/api/courses/{{courseId}}
