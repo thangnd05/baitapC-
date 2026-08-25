@@ -161,8 +161,14 @@ không dùng chung migration giữa hai provider.
 
 ## 9. Chuỗi kiểm thử
 
-`Week2.School.Api.http` chạy được thẳng trong VS Code hoặc Visual Studio, gồm đủ
-happy path lẫn các case lỗi 400/404/409. Thứ tự bắt buộc:
+`Week2.School.Api.http` gồm đủ happy path lẫn các case lỗi 400/404/409.
+
+File này dùng **request chaining** (`{{createProgramme.response.body.$.programmeId}}`)
+để tự chuyền id giữa các bước. Tính năng đó thuộc extension **REST Client của VS Code**;
+trình soạn `.http` sẵn có của Visual Studio chưa hỗ trợ, ở đó phải dán id thủ công
+hoặc dùng Swagger.
+
+Thứ tự bắt buộc:
 
 1. `POST /api/programmes` → **201**, lấy `programmeId`
 2. `POST /api/courses` → **201**

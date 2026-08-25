@@ -122,7 +122,12 @@ Port `5080` do `Properties/launchSettings.json` cố định — không phải p
 của template, nên link Swagger ở trên luôn đúng.
 
 Ngoài Swagger, `Week1.Rbac.Api.http` chứa sẵn toàn bộ chuỗi kiểm thử (kể cả các case
-lỗi 400/404/409) chạy được thẳng trong VS Code hoặc Visual Studio.
+lỗi 400/404/409).
+
+File này dùng **request chaining** (`{{createRole.response.body.$.id}}`) để tự chuyền id
+từ bước trước sang bước sau. Tính năng đó thuộc extension **REST Client của VS Code**;
+trình soạn `.http` sẵn có của Visual Studio chưa hỗ trợ, ở đó phải dán id thủ công
+hoặc dùng Swagger.
 
 ## 6. Mô hình dữ liệu
 
@@ -225,6 +230,7 @@ baitap/
 │   ├── Controllers/               ApiControllerBase + Users/Roles/Permissions
 │   ├── Services/                  nghiệp vụ + ServiceResult
 │   ├── Data/AppDbContext.cs
+│   ├── Infrastructure/            ApiExceptionHandler (ProblemDetails cho lỗi 500)
 │   ├── Migrations/                InitialRbac, SeedOrganizerRole
 │   ├── Models/                    User, Role, Permission, UserRole, RolePermission
 │   ├── Program.cs                 nạp .env, DI, Swagger

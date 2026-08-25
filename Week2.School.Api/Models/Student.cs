@@ -20,6 +20,5 @@ public static class StudentStatus
     public const string Suspended = "SUSPENDED";
     public const string Graduated = "GRADUATED";
 
-    public static readonly IReadOnlySet<string> All =
-        new HashSet<string>([Active, Suspended, Graduated]);
+    public const string Pattern = "^(ACTIVE|SUSPENDED|GRADUATED)$";
 }
