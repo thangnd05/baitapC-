@@ -99,16 +99,20 @@ psql -h localhost -p 5932 -U week1_app -d week1_rbac -c "select current_user, cu
 ## 5. Restore, migration và chạy
 
 ```bash
-cd week1-rbac
-dotnet tool restore                       # cài dotnet-ef 10.0.11
-dotnet restore Week1.Rbac.Api/Week1.Rbac.Api.csproj
+cd baitap
+dotnet tool restore                       # cài dotnet-ef 10.0.11 (manifest ở gốc repo)
 
 cd Week1.Rbac.Api
-dotnet ef database update                 # tạo 5 bảng + __EFMigrationsHistory
-dotnet ef migrations list
+cp .env.example .env
+dotnet restore
+dotnet ef database update                 # tạo 5 bảng + __EFMigrationsHistory + seed
+dotnet ef migrations list                 # InitialRbac, SeedOrganizerRole
 
 dotnet run                                # http://localhost:5080
 ```
+
+Mọi lệnh `dotnet ef` và `dotnet run` phải chạy **trong thư mục `Week1.Rbac.Api`**,
+vì `.env` nằm ở đó và `DotNetEnv` tìm ngược lên từ thư mục hiện tại.
 
 Swagger UI: **http://localhost:5080/swagger** (mở `/` cũng tự chuyển sang `/swagger`).
 Mỗi endpoint khai báo sẵn danh sách mã HTTP qua `[ProducesResponseType]`, nên Swagger
@@ -208,26 +212,35 @@ cho permission) để migration chạy lại nhiều lần vẫn cho cùng kết
 ## 12. Cấu trúc thư mục
 
 ```
-week1-rbac/
-├── .config/dotnet-tools.json
-├── .env                     # secret, KHÔNG commit
-├── .env.example             # mẫu, có commit
-├── README.md
-└── Week1.Rbac.Api/
-    ├── Contracts/
-    │   ├── Requests/        # CreateUserRequest, UpdateRoleRequest, ...
-    │   └── Responses/       # UserResponse, RoleResponse, PermissionResponse
-    ├── Controllers/         # mỏng: ApiControllerBase + Users/Roles/Permissions
-    ├── Services/            # nghiệp vụ + ServiceResult
-    ├── Data/AppDbContext.cs
-    ├── Migrations/          # InitialRbac
-    ├── Models/              # User, Role, Permission, UserRole, RolePermission
-    ├── Program.cs           # nạp .env, DI, Swagger
-    ├── appsettings.json
-    └── appsettings.Development.json
+baitap/
+├── .config/dotnet-tools.json      dotnet-ef dùng chung cho mọi tuần
+├── .gitignore
+├── README.md                      chỉ mục toàn repo
+├── Week1.Rbac.Api/                <-- thư mục này
+│   ├── .env                       secret, KHÔNG commit
+│   ├── .env.example               mẫu, có commit
+│   ├── README.md                  tài liệu tuần 1
+│   ├── Contracts/Requests/        CreateUserRequest, UpdateRoleRequest, ...
+│   ├── Contracts/Responses/       UserResponse, RoleResponse, PermissionResponse
+│   ├── Controllers/               ApiControllerBase + Users/Roles/Permissions
+│   ├── Services/                  nghiệp vụ + ServiceResult
+│   ├── Data/AppDbContext.cs
+│   ├── Migrations/                InitialRbac, SeedOrganizerRole
+│   ├── Models/                    User, Role, Permission, UserRole, RolePermission
+│   ├── Program.cs                 nạp .env, DI, Swagger
+│   ├── Week1.Rbac.Api.http        chuỗi kiểm thử
+│   ├── appsettings.json
+│   └── appsettings.Development.json
+└── Week2.School.Api/              tuần 2, database và migration riêng
 ```
+
+Mỗi tuần là một project độc lập: database riêng, `.env` riêng, migration riêng.
+Chỉ `.config/dotnet-tools.json` và `.gitignore` dùng chung ở gốc repo.
 
 ## 13. Tuần 2
 
-Bổ sung đăng nhập, xác thực password hash, phát JWT và chuyển permission thành
-authorization policy. Database, service và CRUD của tuần 1 được giữ nguyên.
+Tuần 2 nằm ở thư mục `Week2.School.Api/` (School API: programme / course / student),
+dùng database riêng và không đụng vào schema RBAC của tuần 1.
+
+Phần JWT, xác thực password hash và chuyển permission thành authorization policy
+sẽ quay lại ở tuần 3, dựng trên đúng database và service của tuần 1.
