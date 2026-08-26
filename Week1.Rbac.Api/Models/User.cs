@@ -9,5 +9,12 @@ public sealed class User
     public bool IsActive { get; set; } = true;
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// Hồ sơ student mà tài khoản này sở hữu. Null với Admin/Staff.
+    /// Đây là dữ liệu mà owner policy tra để trả lời "bản ghi này có phải của bạn không".
+    /// </summary>
+    public long? StudentId { get; set; }
+    public Student? Student { get; set; }
+
     public ICollection<UserRole> UserRoles { get; set; } = [];
 }
