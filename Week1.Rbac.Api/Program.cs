@@ -182,6 +182,16 @@ app.MapControllers();
 
 app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
 
+// Seed tai khoan lab chi o Development.
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    await IdentitySeeder.SeedAsync(
+        scope.ServiceProvider.GetRequiredService<AppDbContext>(),
+        scope.ServiceProvider.GetRequiredService<IPasswordService>(),
+        app.Configuration);
+}
+
 app.Run();
 
 static JwtOptions ResolveJwtOptions(IConfiguration configuration)
