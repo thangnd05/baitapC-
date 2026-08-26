@@ -1,3 +1,5 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Week1.Rbac.Api.Data;
@@ -37,9 +39,61 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddSingleton<IPasswordService, PasswordService>();
 
+// ---------------------------------------------------------------------------
+// CORS allowlist - liet ke origin cu the, khong dung AllowAnyOrigin
+// ---------------------------------------------------------------------------
+var allowedOrigins = builder.Configuration["Cors:AllowedOrigins"]
+    ?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? ["http://localhost:5173", "http://localhost:3000"];
+
+builder.Services.AddCors(options =>
+    options.AddPolicy(CorsPolicies.SpaAllowlist, policy => policy
+        .WithOrigins(allowedOrigins)
+        .WithMethods("GET", "POST", "PUT", "DELETE")
+        .WithHeaders("Authorization", "Content-Type")));
+
+// ---------------------------------------------------------------------------
+// Rate limit cho endpoint dang nhap
+// ---------------------------------------------------------------------------
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.OnRejected = async (context, ct) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)retryAfter.TotalSeconds).ToString();
+        }
+
+        context.HttpContext.Response.ContentType = "application/problem+json";
+        await context.HttpContext.Response.WriteAsync(
+            """{"title":"Quá nhiều yêu cầu, thử lại sau","status":429}""", ct);
+    };
+
+    // Phan hoach theo dia chi goi: neu khong phan hoach, moi client dung chung mot han muc,
+    // mot nguoi spam la ca lop bi chan.
+    options.AddPolicy(RateLimitPolicies.Login, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 5,
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseSecurityHeaders();
+
+app.UseRouting();
+
+app.UseCors(CorsPolicies.SpaAllowlist);
+app.UseRateLimiter();
 
 app.UseSwagger();
 app.UseSwaggerUI(options =>
