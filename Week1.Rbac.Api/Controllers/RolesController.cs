@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Week1.Rbac.Api.Authorization;
 using Week1.Rbac.Api.Contracts.Requests;
 using Week1.Rbac.Api.Contracts.Responses;
 using Week1.Rbac.Api.Services;
@@ -6,6 +8,8 @@ using Week1.Rbac.Api.Services;
 namespace Week1.Rbac.Api.Controllers;
 
 [Route("api/roles")]
+// Quan tri danh tinh va vai tro: chi Admin.
+[Authorize(Roles = AppRoles.Admin)]
 public sealed class RolesController(IRoleService roles) : ApiControllerBase
 {
     [HttpGet]

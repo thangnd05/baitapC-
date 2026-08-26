@@ -1,11 +1,13 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Npgsql;
+using Week1.Rbac.Api.Authorization;
 using Week1.Rbac.Api.Data;
 using Week1.Rbac.Api.Infrastructure;
 using Week1.Rbac.Api.Services;
@@ -91,9 +93,21 @@ builder.Services
     });
 
 // ---------------------------------------------------------------------------
-// Phan quyen: moi endpoint gan [Authorize] deu yeu cau da xac thuc
+// Phan quyen: role-based bang [Authorize(Roles=...)], resource-based bang policy
 // ---------------------------------------------------------------------------
-builder.Services.AddAuthorization();
+builder.Services.AddScoped<IAuthorizationHandler, StudentOwnerHandler>();
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(AppPolicies.CanEditStudent, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.Requirements.Add(new StudentOwnerRequirement());
+    })
+    .AddPolicy(AppPolicies.CanReadStudent, policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.Requirements.Add(new StudentOwnerRequirement { ReadOnly = true });
+    });
 
 // ---------------------------------------------------------------------------
 // CORS allowlist - liet ke origin cu the, khong dung AllowAnyOrigin
