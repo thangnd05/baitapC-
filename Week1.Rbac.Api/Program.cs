@@ -37,9 +37,9 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Dán access token nhận từ POST /api/auth/login"
     });
 
-    options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        [new OpenApiSecuritySchemeReference("Bearer")] = []
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
