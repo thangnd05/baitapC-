@@ -1,103 +1,227 @@
-@host = http://localhost:5080
+@host = http://localhost:8080
+@password = Lab#2026_ChangeMe
 
-### 1. Tao permission user.read
-# @name createUserRead
-POST {{host}}/api/permissions
+###############################################################################
+# A. ĐĂNG NHẬP — lấy token cho 3 vai trò
+###############################################################################
+
+### A1. Admin
+# @name loginAdmin
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@hnmu.edu.vn", "password": "{{password}}" }
+
+### A2. Staff
+# @name loginStaff
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "staff@hnmu.edu.vn", "password": "{{password}}" }
+
+### A3. Student (tài khoản này sở hữu hồ sơ student_id = 1)
+# @name loginStudent
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "sv001@hnmu.edu.vn", "password": "{{password}}" }
+
+@admin = {{loginAdmin.response.body.accessToken}}
+@staff = {{loginStaff.response.body.accessToken}}
+@student = {{loginStudent.response.body.accessToken}}
+@studentRefresh = {{loginStudent.response.body.refreshToken}}
+
+### A4. Đọc lại chính token đang cầm — chứng minh claim role và student_id có thật
+GET {{host}}/api/auth/me
+Authorization: Bearer {{student}}
+
+
+###############################################################################
+# E. REFRESH TOKEN — rotation, phát hiện replay, đăng xuất
+#
+# Login trả về CẶP token:
+#   accessToken   — JWT, sống 30 phút, KHÔNG thu hồi được, gửi kèm mọi request
+#   refreshToken  — chuỗi ngẫu nhiên 32 byte, sống 14 ngày, DÙNG MỘT LẦN, thu hồi được
+# Database chỉ lưu SHA-256 của refreshToken, không bao giờ lưu giá trị thật.
+###############################################################################
+
+### E1. Đổi refresh token lấy cặp mới -> 200
+# Sau bước này refresh token cũ bị thu hoi (revoked_reason = 'rotated').
+# @name refreshed
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{studentRefresh}}" }
+
+@student2 = {{refreshed.response.body.accessToken}}
+@studentRefresh2 = {{refreshed.response.body.refreshToken}}
+
+### E2. Access token mới dùng được ngay -> 200
+GET {{host}}/api/auth/me
+Authorization: Bearer {{student2}}
+
+### E3. PHÁT HIỆN REPLAY — dùng lại refresh token CŨ (đã bị thu hồi) -> 401
+# Hoặc client giữ lại token cũ, hoặc token đã bị đánh cắp — không phân biệt được,
+# nên xử lý theo hướng an toàn nhất: hủy TOÀN BỘ phiên của tài khoản đó.
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{studentRefresh}}" }
+
+### E4. Hệ quả của E3: refresh token MỚI (đang còn hạn) cũng đã chết -> 401
+# Bằng chứng cho thấy replay không chỉ chặn một token mà cắt cả chuỗi.
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{studentRefresh2}}" }
+
+### E5. Refresh token bịa đặt -> 401 (cùng thông điệp với E3/E4, không rò rỉ)
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "bia-dat-hoan-toan" }
+
+### E6. Đăng xuất — thu hồi refresh token -> 204
+# Chạy lại mục A3 để lấy token mới trước khi thử bước này.
+POST {{host}}/api/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "{{studentRefresh}}" }
+
+### E7. Đăng xuất với token không tồn tại -> vẫn 204
+# Trả lời khác nhau sẽ cho biết token nào có thật trong hệ thống.
+POST {{host}}/api/auth/logout
+Content-Type: application/json
+
+{ "refreshToken": "khong-ton-tai-gi-ca" }
+
+
+###############################################################################
+# B. BỐN KIỂM THỬ ÂM BẮT BUỘC
+###############################################################################
+
+### B1. THIẾU TOKEN -> kỳ vọng 401
+# Rủi ro nếu sai: API mở hoàn toàn.
+GET {{host}}/api/students
+
+### B2. TOKEN HẾT HẠN -> kỳ vọng 401
+# Cách tái hiện tất định: chạy app với access token phát ra đã hết hạn sẵn
+#   dotnet run --urls http://localhost:5081 -- --Jwt:AccessTokenMinutes=-1
+# rồi đăng nhập trên cổng 5081 và gọi endpoint bất kỳ bằng token đó.
+# Rủi ro nếu sai: phiên không bao giờ kết thúc.
+GET {{host}}/api/students
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.het-han.chu-ky-sai
+
+### B3. SAI VAI TRÒ -> kỳ vọng 403
+# Student gọi DELETE. Đã xác thực nhưng không đủ vai trò => 403, KHÔNG phải 401.
+# Rủi ro nếu sai: leo thang đặc quyền.
+DELETE {{host}}/api/students/2
+Authorization: Bearer {{student}}
+
+### B4. SAI CHỦ SỞ HỮU (BOLA) -> kỳ vọng 403
+# sv001 sở hữu student_id = 1 nhưng đang cố sửa hồ sơ số 2.
+# Rủi ro nếu sai: BOLA, rò dữ liệu cá nhân.
+PUT {{host}}/api/students/2
+Authorization: Bearer {{student}}
 Content-Type: application/json
 
 {
-  "code": "user.read",
-  "description": "Xem nguoi dung"
+  "programmeId": 1,
+  "studentCode": "SV002",
+  "fullName": "Doi ten nguoi khac",
+  "email": "sv002@hnmu.edu.vn",
+  "yearOfEntry": 2024,
+  "status": "ACTIVE"
 }
 
-@userReadId = {{createUserRead.response.body.$.id}}
 
-### 2. Tao permission user.create
-# @name createUserCreate
-POST {{host}}/api/permissions
+###############################################################################
+# C. KIỂM THỬ DƯƠNG — chứng minh không phải "khóa sạch cho an toàn"
+###############################################################################
+
+### C1. Student sửa hồ sơ CỦA CHÍNH MÌNH -> 200
+PUT {{host}}/api/students/1
+Authorization: Bearer {{student}}
 Content-Type: application/json
 
 {
-  "code": "user.create",
-  "description": "Tao nguoi dung"
+  "programmeId": 1,
+  "studentCode": "SV001",
+  "fullName": "Nguyen Van An",
+  "email": "sv001@hnmu.edu.vn",
+  "yearOfEntry": 2024,
+  "status": "ACTIVE"
 }
 
-@userCreateId = {{createUserCreate.response.body.$.id}}
+### C2. Student đọc hồ sơ của chính mình -> 200
+GET {{host}}/api/students/1
+Authorization: Bearer {{student}}
 
-### 3. Tao role admin
-# @name createAdminRole
-POST {{host}}/api/roles
+### C3. Student đọc hồ sơ người khác -> 403
+GET {{host}}/api/students/2
+Authorization: Bearer {{student}}
+
+### C4. Staff đọc toàn bộ -> 200
+GET {{host}}/api/students
+Authorization: Bearer {{staff}}
+
+### C5. Student xem danh mục chương trình -> 200 (mọi vai trò đều đọc được)
+GET {{host}}/api/programmes
+Authorization: Bearer {{student}}
+
+### C6. Staff gọi DELETE -> 403 (chỉ Admin được xóa)
+DELETE {{host}}/api/students/2
+Authorization: Bearer {{staff}}
+
+### C7. Admin gọi DELETE -> 204, hoặc 404 nếu bản ghi không tồn tại
+DELETE {{host}}/api/students/3
+Authorization: Bearer {{admin}}
+
+### C8. Quản trị RBAC chỉ Admin — Staff gọi -> 403
+GET {{host}}/api/users
+Authorization: Bearer {{staff}}
+
+### C9. Admin gọi -> 200
+GET {{host}}/api/users
+Authorization: Bearer {{admin}}
+
+
+###############################################################################
+# D. HARDENING
+###############################################################################
+
+### D1. Thông báo lỗi mơ hồ: sai mật khẩu
+# Phải trả về CÙNG một thông điệp với D2.
+POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{
-  "name": "admin",
-  "description": "Quan tri he thong"
-}
+{ "email": "admin@hnmu.edu.vn", "password": "SaiMatKhau123" }
 
-@adminRoleId = {{createAdminRole.response.body.$.id}}
-
-### 4a. Gan user.read cho admin -> 204
-PUT {{host}}/api/roles/{{adminRoleId}}/permissions/{{userReadId}}
-
-### 4b. Gan user.create cho admin -> 204
-PUT {{host}}/api/roles/{{adminRoleId}}/permissions/{{userCreateId}}
-
-### 5. Tao user
-# @name createUser
-POST {{host}}/api/users
+### D2. Thông báo lỗi mơ hồ: email không tồn tại
+# Nếu thông điệp khác D1, kẻ tấn công dùng chính API này để liệt kê email có thật.
+POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{
-  "email": "admin@example.edu.vn",
-  "displayName": "Campus Admin",
-  "password": "P@ssword123"
-}
+{ "email": "khongtontai@hnmu.edu.vn", "password": "SaiMatKhau123" }
 
-@userId = {{createUser.response.body.$.id}}
-
-### 6. Gan role admin cho user -> 204
-PUT {{host}}/api/users/{{userId}}/roles/{{adminRoleId}}
-
-### 7a. Doc lai user -> roles: ["admin"]
-GET {{host}}/api/users/{{userId}}
-
-### 7b. Doc lai role -> permissions: ["user.create", "user.read"]
-GET {{host}}/api/roles/{{adminRoleId}}
-
-### 7c. Hop quyen cua user
-GET {{host}}/api/users/{{userId}}/permissions
-
-### 8. Role organizer va permission event.* duoc seed san
-GET {{host}}/api/roles
-
-### Loi co chu dinh: 409 vi permission code trung
-POST {{host}}/api/permissions
+### D3. Rate limit — gửi liên tiếp 6 lần trong 1 phút, lần thứ 6 trả 429 + Retry-After
+POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{
-  "code": "user.read",
-  "description": "Trung code"
-}
+{ "email": "admin@hnmu.edu.vn", "password": "SaiMatKhau123" }
 
-### Loi co chu dinh: 409 vi email trung
-PUT {{host}}/api/users/{{userId}}
-Content-Type: application/json
+### D4. Security headers — xem response header của bất kỳ endpoint nào
+# Kỳ vọng: X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Referrer-Policy: no-referrer
+GET {{host}}/api/programmes
+Authorization: Bearer {{admin}}
 
-{
-  "email": "admin@example.edu.vn",
-  "displayName": "Campus Admin",
-  "isActive": true
-}
+### D5. CORS preflight từ origin NGOÀI allowlist -> không có Access-Control-Allow-Origin
+OPTIONS {{host}}/api/students
+Origin: http://evil.example.com
+Access-Control-Request-Method: GET
 
-### Loi co chu dinh: 400 vi password duoi 8 ky tu
-POST {{host}}/api/users
-Content-Type: application/json
-
-{
-  "email": "short@example.edu.vn",
-  "displayName": "Short Password",
-  "password": "123"
-}
-
-### Loi co chu dinh: 404 vi id khong ton tai
-GET {{host}}/api/users/00000000-0000-0000-0000-000000000000
+### D6. CORS preflight từ origin TRONG allowlist -> có Access-Control-Allow-Origin
+OPTIONS {{host}}/api/students
+Origin: http://localhost:5173
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: authorization
