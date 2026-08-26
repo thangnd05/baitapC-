@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Week1.Rbac.Api.Contracts.Requests;
 using Week1.Rbac.Api.Contracts.Responses;
@@ -7,9 +6,8 @@ using Week1.Rbac.Api.Models;
 
 namespace Week1.Rbac.Api.Services;
 
-public sealed class UserService(AppDbContext db) : IUserService
+public sealed class UserService(AppDbContext db, IPasswordService passwords) : IUserService
 {
-    private static readonly PasswordHasher<User> Hasher = new();
 
     private static UserResponse ToResponse(User user) => new(
         user.Id,
@@ -55,7 +53,7 @@ public sealed class UserService(AppDbContext db) : IUserService
             Email = email,
             DisplayName = request.DisplayName.Trim()
         };
-        user.PasswordHash = Hasher.HashPassword(user, request.Password);
+        user.PasswordHash = passwords.Hash(user, request.Password);
 
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);

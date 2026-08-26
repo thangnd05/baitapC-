@@ -8,19 +8,31 @@ DotNetEnv.Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ---------------------------------------------------------------------------
+// MVC, ProblemDetails, Swagger
+// ---------------------------------------------------------------------------
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
-    options.SwaggerDoc("v1", new() { Title = "Week 1 RBAC API", Version = "v1" }));
+{
+    options.SwaggerDoc("v1", new() { Title = "Week 1 RBAC API", Version = "v1" });
+});
 
+// ---------------------------------------------------------------------------
+// Persistence
+// ---------------------------------------------------------------------------
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(ResolveConnectionString(builder.Configuration)));
 
+// ---------------------------------------------------------------------------
+// Services
+// ---------------------------------------------------------------------------
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddSingleton<IPasswordService, PasswordService>();
 
 var app = builder.Build();
 
@@ -59,6 +71,6 @@ static string ResolveConnectionString(IConfiguration configuration)
         configuration[key] is { Length: > 0 } value
             ? value
             : throw new InvalidOperationException(
-                $"Thiếu biến môi trường '{key}'. Copy .env.example thành .env rồi điền giá trị, " +
-                "hoặc đặt biến môi trường trước khi chạy.");
+                $"Thiếu biến môi trường '{key}'. Copy .env.example thành .env rồi điền giá trị, "
+                + "hoặc đặt biến môi trường trước khi chạy.");
 }

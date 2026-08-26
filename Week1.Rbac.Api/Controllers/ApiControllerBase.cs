@@ -19,6 +19,20 @@ public abstract class ApiControllerBase : ControllerBase
             Title = error ?? "Dữ liệu bị trùng",
             Status = StatusCodes.Status409Conflict
         }),
+
+        // Thong diep co tinh mo ho: khong noi ro email sai hay mat khau sai,
+        // vi neu phan biet thi ke tan cong dung chinh API de liet ke email co that.
+        ServiceStatus.Unauthorized => Unauthorized(new ProblemDetails
+        {
+            Title = error ?? "Chưa xác thực",
+            Status = StatusCodes.Status401Unauthorized
+        }),
+        ServiceStatus.Forbidden => StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
+        {
+            Title = error ?? "Không đủ quyền cho tài nguyên này",
+            Status = StatusCodes.Status403Forbidden
+        }),
+
         _ => throw new InvalidOperationException($"Trạng thái không phải lỗi: {status}")
     };
 }
