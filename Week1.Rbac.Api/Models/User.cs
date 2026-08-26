@@ -17,4 +17,5 @@ public sealed class User
     public Student? Student { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
 }

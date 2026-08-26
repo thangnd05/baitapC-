@@ -11,6 +11,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Permission> Permissions => Set<Permission>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     // --- Nghiep vu truong hoc (tuan 2) ---
     public DbSet<Programme> Programmes => Set<Programme>();
@@ -125,6 +126,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.Role).WithMany(x => x.UserRoles)
                 .HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("refresh_token");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.UserId).HasColumnName("user_id");
+            entity.Property(x => x.TokenHash).HasColumnName("token_hash").HasMaxLength(64).IsRequired();
+            entity.Property(x => x.CreatedAt).HasColumnName("created_at");
+            entity.Property(x => x.ExpiresAt).HasColumnName("expires_at");
+            entity.Property(x => x.RevokedAt).HasColumnName("revoked_at");
+            entity.Property(x => x.RevokedReason).HasColumnName("revoked_reason").HasMaxLength(40);
+            entity.Property(x => x.ReplacedByTokenId).HasColumnName("replaced_by_token_id");
+
+            // Tra cuu luc refresh la tim theo hash -> phai unique va co index.
+            entity.HasIndex(x => x.TokenHash).IsUnique().HasDatabaseName("ix_refresh_token_hash");
+            entity.HasIndex(x => x.UserId).HasDatabaseName("ix_refresh_token_user");
+
+            // Xoa user thi xoa luon moi refresh token cua user do.
+            entity.HasOne(x => x.User).WithMany(x => x.RefreshTokens)
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RolePermission>(entity =>
