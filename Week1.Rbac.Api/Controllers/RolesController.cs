@@ -8,8 +8,7 @@ using Week1.Rbac.Api.Services;
 namespace Week1.Rbac.Api.Controllers;
 
 [Route("api/roles")]
-// Quan tri danh tinh va vai tro: chi Admin.
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Policy = AppPolicies.ManageIdentity)]
 public sealed class RolesController(IRoleService roles) : ApiControllerBase
 {
     [HttpGet]
@@ -19,7 +18,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<RoleResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<RoleResponse>> GetById(Guid id, CancellationToken ct)
     {
         var result = await roles.GetByIdAsync(id, ct);
@@ -30,8 +29,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpPost]
     [ProducesResponseType<RoleResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RoleResponse>> Create(CreateRoleRequest request, CancellationToken ct)
     {
         var result = await roles.CreateAsync(request, ct);
@@ -42,9 +40,8 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<RoleResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RoleResponse>> Update(Guid id, UpdateRoleRequest request, CancellationToken ct)
     {
         var result = await roles.UpdateAsync(id, request, ct);
@@ -55,7 +52,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var result = await roles.DeleteAsync(id, ct);
@@ -66,7 +63,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpPut("{roleId:guid}/permissions/{permissionId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AssignPermission(Guid roleId, Guid permissionId, CancellationToken ct)
     {
         var result = await roles.AssignPermissionAsync(roleId, permissionId, ct);
@@ -77,7 +74,7 @@ public sealed class RolesController(IRoleService roles) : ApiControllerBase
 
     [HttpDelete("{roleId:guid}/permissions/{permissionId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemovePermission(Guid roleId, Guid permissionId, CancellationToken ct)
     {
         var result = await roles.RemovePermissionAsync(roleId, permissionId, ct);

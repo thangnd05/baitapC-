@@ -185,7 +185,7 @@ kiểm thử được BOLA.
 
 > Tài khoản `admin@example.edu.vn` từ tuần 1 vẫn còn trong database với vai trò `admin`
 > (chữ thường). So sánh vai trò là **case-sensitive**, nên `admin` **không** khớp
-> `[Authorize(Roles = "Admin")]`. Đây là dữ liệu cũ, vô hại — muốn dùng thì gán thêm
+> `RequireRole(AppRoles.Admin)`. Đây là dữ liệu cũ, vô hại — muốn dùng thì gán thêm
 > vai trò `Admin` qua `PUT /api/users/{userId}/roles/{roleId}`.
 
 Đăng nhập:
@@ -217,6 +217,25 @@ curl -X POST http://localhost:8080/api/auth/login \
 
 Mỗi ô **403** trong bảng là một đặc tả kiểm thử: phải có một kiểm thử âm chứng minh hệ thống
 trả 403, không phải 200.
+
+### Bảng trên được khai báo ở đâu
+
+Controller **không** viết tên vai trò. Mỗi endpoint chỉ khai báo *quyền* nó cần bằng
+`[Authorize(Policy = AppPolicies.X)]`; ánh xạ quyền → vai trò nằm đúng **một chỗ** là
+`AddRbacAuthorization()` trong `Authorization/AppPolicies.cs`:
+
+| Policy | Vai trò được cấp | Dùng ở |
+|---|---|---|
+| `ManageIdentity` | Admin | `UsersController`, `RolesController`, `PermissionsController` (mức class) |
+| `WriteCatalog` | Staff, Admin | `POST`/`PUT` programmes, courses |
+| `DeleteCatalog` | Admin | `DELETE` programmes, courses |
+| `ManageStudentDirectory` | Staff, Admin | `GET`/`POST /api/students`, `GET /api/programmes/{id}/students` |
+| `DeleteStudent` | Admin | `DELETE /api/students/{id}` |
+| `CanReadStudent` / `CanEditStudent` | *resource-based* — xem [§8](#8-cách-chống-bola) | `GET`/`PUT /api/students/{id}` |
+
+Mở quyền xóa course cho Staff = sửa **một dòng** `DeleteCatalog` ở file đó. Nếu rải
+`[Authorize(Roles = "...")]` khắp controller thì phải đi sửa từng nơi và rất dễ sót một endpoint —
+mà endpoint bị sót chính là lỗ hổng.
 
 ### Hợp đồng mã lỗi
 
@@ -413,7 +432,7 @@ nhưng mất quyền sở hữu — không kéo theo mất tài khoản.
 ## 13. Tự giải thích trước khi nộp
 
 **Vì sao role check một mình không chặn được BOLA?**
-Vai trò là thuộc tính của *người gọi*, không phải của *bản ghi*. `[Authorize(Roles="Student")]`
+Vai trò là thuộc tính của *người gọi*, không phải của *bản ghi*. Một policy thuần vai trò
 cho phép mọi Student đi qua, kể cả khi id trên URL thuộc về Student khác. Phải so danh tính
 người gọi với chủ sở hữu bản ghi thì mới chặn được.
 
@@ -467,17 +486,18 @@ Week1.Rbac.Api/
 ├── THREAT-MODEL.md             threat model v1 (10 dòng THR-xx)
 ├── Week1.Rbac.Api.http         chuỗi kiểm thử: A đăng nhập · B 4 ca âm · C dương · D hardening
 ├── Authorization/
-│   ├── AppRoles.cs             hằng số Admin/Staff/Student + tên policy
+│   ├── AppRoles.cs             hằng số Admin/Staff/Student (chỉ dùng để seed + khai báo policy)
+│   ├── AppPolicies.cs          tên policy + AddRbacAuthorization(): NƠI DUY NHẤT ánh xạ quyền → vai trò
 │   └── StudentOwnerHandler.cs  requirement + handler chống BOLA
 ├── Contracts/
 │   ├── Requests/               AuthRequests, User/Role/Permission, Student/Programme/Course
 │   └── Responses/              AuthResponses (LoginResponse, MeResponse) + các DTO khác
 ├── Controllers/
-│   ├── ApiControllerBase.cs    dịch ServiceStatus → HTTP tại một chỗ duy nhất
+│   ├── ApiControllerBase.cs    dịch ServiceStatus → HTTP + khai báo mã lỗi dùng chung (400/401/403/500)
 │   ├── AuthController.cs       login · refresh · logout (AllowAnonymous + rate limit) · me
 │   ├── StudentsController.cs   role check + owner policy
 │   ├── ProgrammesController.cs · CoursesController.cs
-│   └── UsersController.cs · RolesController.cs · PermissionsController.cs   [Authorize(Admin)]
+│   └── UsersController.cs · RolesController.cs · PermissionsController.cs   policy ManageIdentity
 ├── Data/
 │   ├── AppDbContext.cs         RBAC + School trong một context
 │   └── IdentitySeeder.cs       3 vai trò, 3 tài khoản, dữ liệu student mẫu

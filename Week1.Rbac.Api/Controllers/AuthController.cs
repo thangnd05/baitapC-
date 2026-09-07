@@ -18,9 +18,7 @@ public sealed class AuthController(IAuthService auth) : ApiControllerBase
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [ProducesResponseType<TokenPairResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<TokenPairResponse>> Login(LoginRequest request, CancellationToken ct)
     {
         var result = await auth.LoginAsync(request, ct);
@@ -38,9 +36,7 @@ public sealed class AuthController(IAuthService auth) : ApiControllerBase
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitPolicies.Login)]
     [ProducesResponseType<TokenPairResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
     public async Task<ActionResult<TokenPairResponse>> Refresh(RefreshRequest request, CancellationToken ct)
     {
         var result = await auth.RefreshAsync(request, ct);
@@ -56,7 +52,6 @@ public sealed class AuthController(IAuthService auth) : ApiControllerBase
     [HttpPost("logout")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Logout(LogoutRequest request, CancellationToken ct)
     {
         await auth.LogoutAsync(request, ct);
@@ -66,7 +61,6 @@ public sealed class AuthController(IAuthService auth) : ApiControllerBase
     /// <summary>Doc lai chinh token dang cam: chung minh claim role va student_id co that.</summary>
     [HttpGet("me")]
     [ProducesResponseType<MeResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public ActionResult<MeResponse> Me()
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);

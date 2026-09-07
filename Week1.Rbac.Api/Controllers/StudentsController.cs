@@ -19,22 +19,19 @@ public sealed class StudentsController(
 {
     /// <summary>Danh sach toan bo student - Student KHONG duoc xem.</summary>
     [HttpGet]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.ManageStudentDirectory)]
     [ProducesResponseType<IEnumerable<StudentResponse>>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<StudentResponse>>> GetAll(CancellationToken ct) =>
         Ok(await students.GetAllAsync(ct));
 
     /// <summary>Student chi doc duoc ho so cua chinh minh; Staff/Admin doc duoc tat ca.</summary>
     [HttpGet("{id:long}")]
     [ProducesResponseType<StudentResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<StudentResponse>> GetById(long id, CancellationToken ct)
     {
-        if (!await IsOwnerOrStaffAsync(id))
+        var check = await authorization.AuthorizeAsync(User, id, AppPolicies.CanReadStudent);
+        if (!check.Succeeded)
         {
             return Forbid();
         }
@@ -46,13 +43,10 @@ public sealed class StudentsController(
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.ManageStudentDirectory)]
     [ProducesResponseType<StudentResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<StudentResponse>> Create(CreateStudentRequest request, CancellationToken ct)
     {
         var result = await students.CreateAsync(request, ct);
@@ -67,17 +61,12 @@ public sealed class StudentsController(
     /// </summary>
     [HttpPut("{id:long}")]
     [ProducesResponseType<StudentResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<StudentResponse>> Update(
         long id, UpdateStudentRequest request, CancellationToken ct)
     {
-        var check = await authorization.AuthorizeAsync(
-            User, id, AppPolicies.CanEditStudent);
-
+        var check = await authorization.AuthorizeAsync(User, id, AppPolicies.CanEditStudent);
         if (!check.Succeeded)
         {
             return Forbid(); // 403, khong phai 401 - nguoi goi DA xac thuc, chi la khong du quyen
@@ -90,22 +79,14 @@ public sealed class StudentsController(
     }
 
     [HttpDelete("{id:long}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = AppPolicies.DeleteStudent)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(long id, CancellationToken ct)
     {
         var result = await students.DeleteAsync(id, ct);
         return result.Status is ServiceStatus.Success
             ? NoContent()
             : Failure(result.Status, result.Error);
-    }
-
-    private async Task<bool> IsOwnerOrStaffAsync(long studentId)
-    {
-        var check = await authorization.AuthorizeAsync(User, studentId, AppPolicies.CanReadStudent);
-        return check.Succeeded;
     }
 }

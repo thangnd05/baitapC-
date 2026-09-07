@@ -14,14 +14,12 @@ public sealed class ProgrammesController(IProgrammeService programmes) : ApiCont
     /// <summary>Danh muc chuong trinh dao tao: moi vai tro da dang nhap deu doc duoc.</summary>
     [HttpGet]
     [ProducesResponseType<IEnumerable<ProgrammeResponse>>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<ProgrammeResponse>>> GetAll(CancellationToken ct) =>
         Ok(await programmes.GetAllAsync(ct));
 
     [HttpGet("{id:long}")]
     [ProducesResponseType<ProgrammeResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ProgrammeResponse>> GetById(long id, CancellationToken ct)
     {
         var result = await programmes.GetByIdAsync(id, ct);
@@ -31,12 +29,9 @@ public sealed class ProgrammesController(IProgrammeService programmes) : ApiCont
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.WriteCatalog)]
     [ProducesResponseType<ProgrammeResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ProgrammeResponse>> Create(CreateProgrammeRequest request, CancellationToken ct)
     {
         var result = await programmes.CreateAsync(request, ct);
@@ -46,13 +41,10 @@ public sealed class ProgrammesController(IProgrammeService programmes) : ApiCont
     }
 
     [HttpPut("{id:long}")]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.WriteCatalog)]
     [ProducesResponseType<ProgrammeResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<ProgrammeResponse>> Update(long id, UpdateProgrammeRequest request, CancellationToken ct)
     {
         var result = await programmes.UpdateAsync(id, request, ct);
@@ -62,12 +54,10 @@ public sealed class ProgrammesController(IProgrammeService programmes) : ApiCont
     }
 
     [HttpDelete("{id:long}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = AppPolicies.DeleteCatalog)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Delete(long id, CancellationToken ct)
     {
         var result = await programmes.DeleteAsync(id, ct);
@@ -76,13 +66,11 @@ public sealed class ProgrammesController(IProgrammeService programmes) : ApiCont
             : Failure(result.Status, result.Error);
     }
 
-    /// <summary>Liet ke ho so sinh vien theo chuong trinh - du lieu ca nhan, chi Staff/Admin.</summary>
+    /// <summary>Liet ke ho so sinh vien theo chuong trinh - du lieu ca nhan, khong mo cho Student.</summary>
     [HttpGet("{id:long}/students")]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.ManageStudentDirectory)]
     [ProducesResponseType<IEnumerable<StudentResponse>>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<StudentResponse>>> GetStudents(long id, CancellationToken ct)
     {
         var result = await programmes.GetStudentsAsync(id, ct);

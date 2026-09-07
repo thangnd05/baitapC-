@@ -8,8 +8,7 @@ using Week1.Rbac.Api.Services;
 namespace Week1.Rbac.Api.Controllers;
 
 [Route("api/permissions")]
-// Quan tri danh tinh va vai tro: chi Admin.
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Policy = AppPolicies.ManageIdentity)]
 public sealed class PermissionsController(IPermissionService permissions) : ApiControllerBase
 {
     [HttpGet]
@@ -19,7 +18,7 @@ public sealed class PermissionsController(IPermissionService permissions) : ApiC
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<PermissionResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PermissionResponse>> GetById(Guid id, CancellationToken ct)
     {
         var result = await permissions.GetByIdAsync(id, ct);
@@ -30,8 +29,7 @@ public sealed class PermissionsController(IPermissionService permissions) : ApiC
 
     [HttpPost]
     [ProducesResponseType<PermissionResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<PermissionResponse>> Create(CreatePermissionRequest request, CancellationToken ct)
     {
         var result = await permissions.CreateAsync(request, ct);
@@ -42,9 +40,8 @@ public sealed class PermissionsController(IPermissionService permissions) : ApiC
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<PermissionResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<PermissionResponse>> Update(Guid id, UpdatePermissionRequest request, CancellationToken ct)
     {
         var result = await permissions.UpdateAsync(id, request, ct);
@@ -55,7 +52,7 @@ public sealed class PermissionsController(IPermissionService permissions) : ApiC
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var result = await permissions.DeleteAsync(id, ct);

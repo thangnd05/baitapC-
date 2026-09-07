@@ -1,7 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -93,21 +92,10 @@ builder.Services
     });
 
 // ---------------------------------------------------------------------------
-// Phan quyen: role-based bang [Authorize(Roles=...)], resource-based bang policy
+// Phan quyen: MOI quy tac "quyen nao thuoc vai tro nao" nam trong AddRbacAuthorization()
+// (Authorization/AppPolicies.cs). Controller chi khai bao [Authorize(Policy = ...)].
 // ---------------------------------------------------------------------------
-builder.Services.AddScoped<IAuthorizationHandler, StudentOwnerHandler>();
-
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy(AppPolicies.CanEditStudent, policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.Requirements.Add(new StudentOwnerRequirement());
-    })
-    .AddPolicy(AppPolicies.CanReadStudent, policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.Requirements.Add(new StudentOwnerRequirement { ReadOnly = true });
-    });
+builder.Services.AddRbacAuthorization();
 
 // ---------------------------------------------------------------------------
 // CORS allowlist - liet ke origin cu the, khong dung AllowAnyOrigin

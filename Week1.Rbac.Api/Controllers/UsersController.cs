@@ -8,8 +8,7 @@ using Week1.Rbac.Api.Services;
 namespace Week1.Rbac.Api.Controllers;
 
 [Route("api/users")]
-// Quan tri danh tinh va vai tro: chi Admin.
-[Authorize(Roles = AppRoles.Admin)]
+[Authorize(Policy = AppPolicies.ManageIdentity)]
 public sealed class UsersController(IUserService users) : ApiControllerBase
 {
     [HttpGet]
@@ -19,7 +18,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpGet("{id:guid}")]
     [ProducesResponseType<UserResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserResponse>> GetById(Guid id, CancellationToken ct)
     {
         var result = await users.GetByIdAsync(id, ct);
@@ -30,8 +29,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpPost]
     [ProducesResponseType<UserResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<UserResponse>> Create(CreateUserRequest request, CancellationToken ct)
     {
         var result = await users.CreateAsync(request, ct);
@@ -42,9 +40,8 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<UserResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<UserResponse>> Update(Guid id, UpdateUserRequest request, CancellationToken ct)
     {
         var result = await users.UpdateAsync(id, request, ct);
@@ -55,7 +52,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
         var result = await users.DeleteAsync(id, ct);
@@ -66,7 +63,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpPut("{userId:guid}/roles/{roleId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AssignRole(Guid userId, Guid roleId, CancellationToken ct)
     {
         var result = await users.AssignRoleAsync(userId, roleId, ct);
@@ -77,7 +74,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpDelete("{userId:guid}/roles/{roleId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveRole(Guid userId, Guid roleId, CancellationToken ct)
     {
         var result = await users.RemoveRoleAsync(userId, roleId, ct);
@@ -88,7 +85,7 @@ public sealed class UsersController(IUserService users) : ApiControllerBase
 
     [HttpGet("{id:guid}/permissions")]
     [ProducesResponseType<IEnumerable<string>>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<string>>> GetEffectivePermissions(Guid id, CancellationToken ct)
     {
         var result = await users.GetEffectivePermissionsAsync(id, ct);

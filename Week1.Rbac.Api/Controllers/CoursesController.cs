@@ -14,14 +14,12 @@ public sealed class CoursesController(ICourseService courses) : ApiControllerBas
     /// <summary>Danh muc hoc phan: moi vai tro da dang nhap deu doc duoc.</summary>
     [HttpGet]
     [ProducesResponseType<IEnumerable<CourseResponse>>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<CourseResponse>>> GetAll(CancellationToken ct) =>
         Ok(await courses.GetAllAsync(ct));
 
     [HttpGet("{id:long}")]
     [ProducesResponseType<CourseResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CourseResponse>> GetById(long id, CancellationToken ct)
     {
         var result = await courses.GetByIdAsync(id, ct);
@@ -31,12 +29,9 @@ public sealed class CoursesController(ICourseService courses) : ApiControllerBas
     }
 
     [HttpPost]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.WriteCatalog)]
     [ProducesResponseType<CourseResponse>(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CourseResponse>> Create(CreateCourseRequest request, CancellationToken ct)
     {
         var result = await courses.CreateAsync(request, ct);
@@ -46,13 +41,10 @@ public sealed class CoursesController(ICourseService courses) : ApiControllerBas
     }
 
     [HttpPut("{id:long}")]
-    [Authorize(Roles = AppRoles.StaffOrAdmin)]
+    [Authorize(Policy = AppPolicies.WriteCatalog)]
     [ProducesResponseType<CourseResponse>(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<CourseResponse>> Update(long id, UpdateCourseRequest request, CancellationToken ct)
     {
         var result = await courses.UpdateAsync(id, request, ct);
@@ -62,11 +54,9 @@ public sealed class CoursesController(ICourseService courses) : ApiControllerBas
     }
 
     [HttpDelete("{id:long}")]
-    [Authorize(Roles = AppRoles.Admin)]
+    [Authorize(Policy = AppPolicies.DeleteCatalog)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(long id, CancellationToken ct)
     {
         var result = await courses.DeleteAsync(id, ct);
